@@ -11,7 +11,8 @@ public class User:IUser
     public string OauthTokenSecret { get; set; }
     public DiscogsAuthentifierClient DiscogsClient { get; set; }
     
-    public User(long chatId, ChatMode chatMode, string userName, string oauthToken, string oauthTokenSecret, DiscogsAuthentifierClient discogClient)
+    public string UserRequestToken { get; set; }
+    public User(long chatId, ChatMode chatMode, string userName, string oauthToken, string oauthTokenSecret, DiscogsAuthentifierClient discogClient, string userRequestToken)
     {
         ChatId = chatId;
         ChatMode = chatMode;
@@ -19,5 +20,6 @@ public class User:IUser
         OauthToken = oauthToken;
         OauthTokenSecret = oauthTokenSecret;
         DiscogsClient = discogClient;
+        UserRequestToken = userRequestToken;
     }
 }
