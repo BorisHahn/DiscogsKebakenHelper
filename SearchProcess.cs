@@ -1,13 +1,17 @@
-﻿using Telegram.Bot;
+﻿using DiscogsClient.Data.Query;
+using RestSharpHelper.OAuth1;
+using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace DiscogsKebakenHelper;
 
 public enum SearchState
 {
-    Initial = 0,
-    setValue = 1,
-    getSearchResult = 2,
+    initial = 0,
+    setArtist = 1,
+    setReleaseTitle = 2,
+    getSearchResult = 3,
 };
 
 public class SearchModeState
@@ -17,9 +21,13 @@ public class SearchModeState
 
 public class SearchProcess
 {
+    public string Artist { get; set; }
+    public string ReleaseTitle { get; set; }
     public Dictionary<long, SearchModeState> ChatDict { get; set; } = new();
     private IUser _user;
-    public async Task StartSearchProcess(ITelegramBotClient client, Update update, IUser currentUser, CancellationToken ct)
+
+    public async Task StartSearchProcess(ITelegramBotClient client, Update update, IUser currentUser,
+        CancellationToken ct, OAuthConsumerInformation oAuthConsumerInformation)
     {
         if (!ChatDict.TryGetValue(update.Message!.Chat.Id, out var state))
         {
@@ -27,16 +35,76 @@ public class SearchProcess
         }
 
         state = ChatDict[update.Message!.Chat.Id];
-        
+
         switch (state.Mode)
         {
-           case SearchState.Initial:
-               await client.SendTextMessageAsync(
-                   chatId: update.Message.Chat.Id,
-                   text: "Введите название композиции:",
-                   cancellationToken: ct);
-               currentUser.ChatMode = ChatMode.AskMenuCommand;
-               break;
+            case SearchState.initial:
+                await client.SendTextMessageAsync(
+                    chatId: update.Message.Chat.Id,
+                    text: "Введите наименование исполнителя:",
+                    cancellationToken: ct);
+                state.Mode = SearchState.setArtist;
+                break;
+            case SearchState.setArtist:
+                Artist = update.Message.Text;
+                await client.SendTextMessageAsync(
+                    chatId: update.Message.Chat.Id,
+                    text: "Введите наименование релиза:",
+                    cancellationToken: ct);
+                state.Mode = SearchState.setReleaseTitle;
+                break;
+            case SearchState.setReleaseTitle:
+                ReleaseTitle = update.Message.Text;
+                await client.SendTextMessageAsync(
+                    chatId: update.Message.Chat.Id,
+                    text: $"Вот, что удалось найти по заданному результату:\n{$"{Artist} " + '–' + $" {ReleaseTitle}"}",
+                    cancellationToken: ct);
+                OAuthCompleteInformation oauthInform = new OAuthCompleteInformation(oAuthConsumerInformation,
+                    currentUser.OauthToken,
+                    currentUser.OauthTokenSecret);
+                var _DiscogsClient = new DiscogsClient.DiscogsClient(oauthInform);
+                Search(_DiscogsClient, client, update, ct, Artist, ReleaseTitle, currentUser);
+                state.Mode = SearchState.initial;
+                break;
         }
+    }
+
+    async void Search(DiscogsClient.DiscogsClient client, ITelegramBotClient TelegramClient, Update update,
+        CancellationToken ct, string artist, string releaseTitle, IUser user)
+    {
+        var discogsSearch = new DiscogsSearch()
+        {
+            artist = artist,
+            release_title = releaseTitle,
+            format = "Vinyl"
+        };
+        var res = client.SearchAsync(discogsSearch).Result;
+
+        foreach (var searchResult in res.GetResults())
+        {
+            //var options = new JsonSerializerOptions { WriteIndented = true };
+            //var resText = JsonSerializer.Serialize(searchResult, options);
+            var genreString = String.Join(", ", searchResult.format);
+            var formatString = String.Join(", ", searchResult.format);
+
+            await TelegramClient.SendTextMessageAsync(
+                chatId: update.Message.Chat.Id,
+                text: $"{searchResult.thumb}\n" +
+                      $"Наименование: {searchResult.title}\n" +
+                      $"Страна: {searchResult.country}\n" +
+                      $"Год: {searchResult.year}\n" +
+                      $"Формат: {formatString}\n" +
+                      $"Жанр: {genreString}\n" +
+                      $"Пользователи добавили: {searchResult.community.have}\n" +
+                      $"Пользователи хотят: {searchResult.community.want}\n",
+                cancellationToken: ct);
+            await TelegramClient.SendTextMessageAsync(
+                chatId: update.Message.Chat.Id,
+                text: $"Скопируй id релиза для добавления \n\n`{searchResult.id}`",
+                parseMode: ParseMode.Markdown,
+                cancellationToken: ct);
+        }
+
+        user.ChatMode = ChatMode.AskMenuCommand;
     }
 }

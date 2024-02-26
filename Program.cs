@@ -28,18 +28,14 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
     var checkUser = arrayOfUsers.Any(user => user.ChatId == update.Message!.Chat.Id);
     if (checkUser == false)
     {
-        arrayOfUsers.Add(new User(update.Message!.Chat.Id, ChatMode.Initial, "", "", "",
+        arrayOfUsers.Add(new User(update.Message!.Chat.Id, ChatMode.Initial, "BorisHahn",
+            "PiaaCdjhycGffxJLiKCguDOWVFDRgXbxrkLSQnjt", "UJTiLABDIdzyyRMmpPoWPzkfghulRzPAaiiTMIzu",
             new DiscogsAuthentifierClient(oAuthConsumerInformation), ""));
     }
 
     var currentUser = arrayOfUsers.Find(user => user.ChatId == update.Message!.Chat.Id);
     var state = currentUser.ChatMode;
 
-    Console.WriteLine(currentUser.ChatId);
-    Console.WriteLine(currentUser.UserName);
-    Console.WriteLine(currentUser.OauthToken);
-    Console.WriteLine(currentUser.OauthTokenSecret);
-    
     if (update.Message.Text == "/exit")
     {
         currentUser.ChatMode = ChatMode.AskMenuCommand;
@@ -61,6 +57,10 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
             case ChatMode.ReadyToAuth:
                 currentUser.UserRequestToken = update.Message.Text;
                 currentUser.ChatMode = ChatMode.AskMenuCommand;
+                break;
+            case ChatMode.SearchProcess:
+                await newSearchProcess.StartSearchProcess(client, update, currentUser, ct, oAuthConsumerInformation);
+                currentUser.ChatMode = ChatMode.SearchProcess;
                 break;
             case ChatMode.AskMenuCommand:
                 switch (update.Message.Text)
@@ -98,6 +98,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                             _DiscogsClient.GetUserIdentityAsync().ContinueWith((r) =>
                             {
                                 currentUser.UserName = r.Result.username;
+                                SendMenu(client, update, currentUser, ct);
                             });
                             client.SendTextMessageAsync(
                                 chatId: update.Message!.Chat.Id,
@@ -107,12 +108,14 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                             );
                             return Task.FromResult(res);
                         });
-                        
+
                         currentUser.ChatMode = ChatMode.ReadyToAuth;
-                        
+
                         break;
                     case "/search":
-                        await newSearchProcess.StartSearchProcess(client, update, currentUser, ct);
+                        await newSearchProcess.StartSearchProcess(client, update, currentUser, ct,
+                            oAuthConsumerInformation);
+                        currentUser.ChatMode = ChatMode.SearchProcess;
                         break;
                     default:
                         await SendMenu(client, update, currentUser, ct);
@@ -125,7 +128,8 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                 {
                     case "/search":
                         currentUser.ChatMode = ChatMode.SearchProcess;
-                        await newSearchProcess.StartSearchProcess(client, update, currentUser, ct);
+                        await newSearchProcess.StartSearchProcess(client, update, currentUser, ct,
+                            oAuthConsumerInformation);
                         break;
                     default:
                         await SendMenu(client, update, currentUser, ct);
@@ -144,12 +148,13 @@ async Task ErrorHandler(ITelegramBotClient client, Exception exception, Cancella
 
 async Task SendMenu(ITelegramBotClient client, Update update, User currentUser, CancellationToken ct)
 {
-    string authCommand = currentUser.UserName == "" ? "/auth - аутентификация пользователя" : "";
+    string authCommand = currentUser.UserName == ""
+        ? "/auth - аутентификация пользователя"
+        : "/search - поиск по базе данных";
     await client.SendTextMessageAsync(chatId: update.Message!.Chat.Id,
         text: "Выберите меню:\n\n" +
-              "/search - поиск по базе данных\n" +
-              "/exit - вернуться в главное меню\n" +
-              $"{authCommand}\n",
+              $"{authCommand}\n" +
+              "/exit - вернуться в главное меню\n",
         cancellationToken: ct);
 }
 
