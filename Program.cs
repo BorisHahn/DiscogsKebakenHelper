@@ -149,36 +149,10 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                 break;
             case "SearchProcess":
                 await newSearchProcess.StartSearchProcess(client, update, currentUser, ct, oAuthConsumerInformation);
-                /*using (PostgresContext db = new())
-                {
-                    UserData.UpdateUser(db, new User
-                    {
-                        Uid = currentUser.Uid,
-                        ChatId = currentUser.ChatId,
-                        ChatMode = chatMode[1],
-                        OauthToken = currentUser.OauthToken,
-                        OauthTokenSecret = currentUser.OauthTokenSecret,
-                        UserName = currentUser.UserName,
-                        UserRequestToken = currentUser.UserRequestToken
-                    });
-                }*/
                 break;
             case "AddProcess":
                 await newAddProcess.StartAddProcess(client, update, currentUser, ct,
                             oAuthConsumerInformation);
-                using (PostgresContext db = new())
-                {
-                    UserData.UpdateUser(db, new User
-                    {
-                        Uid = currentUser.Uid,
-                        ChatId = currentUser.ChatId,
-                        ChatMode = chatMode[4],
-                        OauthToken = currentUser.OauthToken,
-                        OauthTokenSecret = currentUser.OauthTokenSecret,
-                        UserName = currentUser.UserName,
-                        UserRequestToken = currentUser.UserRequestToken
-                    });
-                }
                 break;
             case "AskMenuCommand":
                 switch (update.Message.Text)
