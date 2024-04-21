@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Code\\dev\\DiscogsKebakenHelper\\DiscogsKebakenHelper.csproj": {}
+    "E:\\dev\\C#\\DiscogsKebakenHelper\\DiscogsKebakenHelper.csproj": {}
   },
   "projects": {
-    "C:\\Code\\dev\\DiscogsKebakenHelper\\DiscogsKebakenHelper.csproj": {
+    "E:\\dev\\C#\\DiscogsKebakenHelper\\DiscogsKebakenHelper.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Code\\dev\\DiscogsKebakenHelper\\DiscogsKebakenHelper.csproj",
+        "projectUniqueName": "E:\\dev\\C#\\DiscogsKebakenHelper\\DiscogsKebakenHelper.csproj",
         "projectName": "DiscogsKebakenHelper",
-        "projectPath": "C:\\Code\\dev\\DiscogsKebakenHelper\\DiscogsKebakenHelper.csproj",
+        "projectPath": "E:\\dev\\C#\\DiscogsKebakenHelper\\DiscogsKebakenHelper.csproj",
         "packagesPath": "C:\\Users\\boris\\.nuget\\packages\\",
-        "outputPath": "C:\\Code\\dev\\DiscogsKebakenHelper\\obj\\",
+        "outputPath": "E:\\dev\\C#\\DiscogsKebakenHelper\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\boris\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -34,11 +34,6 @@
           "warnAsError": [
             "NU1605"
           ]
-        },
-        "restoreAuditProperties": {
-          "enableAudit": "true",
-          "auditLevel": "low",
-          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -80,7 +75,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.202\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.403\\RuntimeIdentifierGraph.json"
         }
       }
     }

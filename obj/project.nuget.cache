@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "Ti8N41o6q7KZEx5tzMVxCpIBgWORsyHFYLnjURiu1nRKf5ZzkizeQDNBnJ8zpUtsPSfbJf2v1TvoGEmMgVj3BA==",
+  "dgSpecHash": "msqk7UYciGpe+OzAQI8jQGgTvUSy1ajeZvopTpYiGIN3vWRybruWUPjpTb6MrTdEWDX3C4UGW6axWldYC9xBxg==",
   "success": true,
-  "projectFilePath": "C:\\Code\\dev\\DiscogsKebakenHelper\\DiscogsKebakenHelper.csproj",
+  "projectFilePath": "E:\\dev\\C#\\DiscogsKebakenHelper\\DiscogsKebakenHelper.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\boris\\.nuget\\packages\\discogsclient\\2.7.1\\discogsclient.2.7.1.nupkg.sha512",
     "C:\\Users\\boris\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
