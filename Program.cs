@@ -11,11 +11,10 @@ using User = DiscogsKebakenHelper.Model.User;
 
 var botClient = new TelegramBotClient(AppConfiguration.TelegramBotToken);
 var newSearchProcessDict = new Dictionary<long, SearchProcess>();
-var newAddProcess = new AddProcess();
+var newAddProcessDict = new Dictionary<long, AddProcess>();
 var oAuthConsumerInformation =
     new OAuthConsumerInformation(AppConfiguration.ConsumerKey, AppConfiguration.ConsumerSecret);
 var arrayOfUsers = new List<User>();
-var token = "";
 var dateTime = DateTime.UtcNow;
 var chatMode = new Dictionary<int, string>()
 {
@@ -53,12 +52,6 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
         
         if (checkUser == null)
         {
-            if (update.Message.Text != "/start 8796987263876123")
-            {
-                Console.WriteLine("Кто-то пытается пролезть");
-                return;
-            }
-            Console.WriteLine("Пользователя в базе нет сейчас добавим");
             UserData.AddUser(db, new User
             {
                 ChatId = (int)update.Message!.Chat.Id,
@@ -70,7 +63,6 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
             });
         }
         currentUser = UserData.GetUser(db, (int)update.Message!.Chat.Id);
-        Console.WriteLine("Попали сюда");
     }
     if (currentUser == null)
     {
@@ -85,6 +77,10 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
     if (!newSearchProcessDict.TryGetValue(update.Message!.Chat.Id, out var newSearchProcess))
     {
         newSearchProcessDict.Add(update.Message!.Chat.Id, new SearchProcess());
+    }
+    if (!newAddProcessDict.TryGetValue(update.Message!.Chat.Id, out var newAddProcess))
+    {
+        newAddProcessDict.Add(update.Message!.Chat.Id, new AddProcess());
     }
     var state = currentUser.ChatMode;
     
@@ -107,8 +103,6 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
     }
     else
     {
-        Console.WriteLine(currentUser.ChatMode);
-        Console.WriteLine(state);
         switch (state)
         {
             case "Initial":

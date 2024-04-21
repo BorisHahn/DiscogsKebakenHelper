@@ -5,6 +5,8 @@ using RestSharp;
 using RestSharp.Authenticators;
 using User = DiscogsKebakenHelper.Model.User;
 using System.Text.Json.Nodes;
+using DiscogsKebakenHelper.Data;
+using DiscogsKebakenHelper.Model;
 
 namespace DiscogsKebakenHelper;
 
@@ -88,7 +90,19 @@ public class AddModeState
                           $"Наименование релиза: {jsonObject["basic_information"]["title"]}\n" +
                           $"Год: {jsonObject["basic_information"]["year"]}\n",
                     cancellationToken: ct);
-            user.ChatMode = "AskMenuCommand";
+            using (PostgresContext db = new())
+            {
+                UserData.UpdateUser(db, new User
+                {
+                    Uid = user.Uid,
+                    ChatId = user.ChatId,
+                    ChatMode = Enums.chatMode[1],
+                    OauthToken = user.OauthToken,
+                    OauthTokenSecret = user.OauthTokenSecret,
+                    UserName = user.UserName,
+                    UserRequestToken = user.UserRequestToken
+                });
+            }
         } else
         {
             await TelegramClient.SendTextMessageAsync(
