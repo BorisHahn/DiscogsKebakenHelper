@@ -3,8 +3,16 @@
   "WorkspaceRootPath": "C:\\Code\\dev\\DiscogsKebakenHelper\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Code\\dev\\DiscogsKebakenHelper\\AddProcess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:AddProcess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{50109A3D-FDAE-4694-A291-CAD02E3F626D}|DiscogsKebakenHelper.csproj|c:\\code\\dev\\discogskebakenhelper\\addprocess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{50109A3D-FDAE-4694-A291-CAD02E3F626D}|DiscogsKebakenHelper.csproj|solutionrelative:addprocess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{50109A3D-FDAE-4694-A291-CAD02E3F626D}|DiscogsKebakenHelper.csproj|c:\\code\\dev\\discogskebakenhelper\\deleteprocess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{50109A3D-FDAE-4694-A291-CAD02E3F626D}|DiscogsKebakenHelper.csproj|solutionrelative:deleteprocess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{50109A3D-FDAE-4694-A291-CAD02E3F626D}|DiscogsKebakenHelper.csproj|c:\\code\\dev\\discogskebakenhelper\\searchprocess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{50109A3D-FDAE-4694-A291-CAD02E3F626D}|DiscogsKebakenHelper.csproj|solutionrelative:searchprocess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -14,11 +22,37 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "SearchProcess.cs",
+              "DocumentMoniker": "C:\\Code\\dev\\DiscogsKebakenHelper\\SearchProcess.cs",
+              "RelativeDocumentMoniker": "SearchProcess.cs",
+              "ToolTip": "C:\\Code\\dev\\DiscogsKebakenHelper\\SearchProcess.cs",
+              "RelativeToolTip": "SearchProcess.cs",
+              "ViewState": "AQIAAGoAAAAAAAAAAADwvwAAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-04-21T14:31:48.625Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "DeleteProcess.cs",
+              "DocumentMoniker": "C:\\Code\\dev\\DiscogsKebakenHelper\\DeleteProcess.cs",
+              "RelativeDocumentMoniker": "DeleteProcess.cs",
+              "ToolTip": "C:\\Code\\dev\\DiscogsKebakenHelper\\DeleteProcess.cs",
+              "RelativeToolTip": "DeleteProcess.cs",
+              "ViewState": "AQIAAFUAAAAAAAAAAAAQwF0AAAA2AAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-04-21T14:25:54.894Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -28,7 +62,7 @@
               "RelativeDocumentMoniker": "AddProcess.cs",
               "ToolTip": "C:\\Code\\dev\\DiscogsKebakenHelper\\AddProcess.cs",
               "RelativeToolTip": "AddProcess.cs",
-              "ViewState": "AQIAAAYAAAAAAAAAAAAAAA4AAAAQAAAA",
+              "ViewState": "AQIAAEkAAAAAAAAAAAAwwFYAAABCAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-04-21T13:56:39.659Z",
               "EditorCaption": ""

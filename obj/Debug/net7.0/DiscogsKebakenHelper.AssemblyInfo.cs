@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DiscogsKebakenHelper")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7e9f7dadc067a38bab35464243104b7a3bca7df4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+46f6b1252c5a38a3f993fcbee975cd10ea15b278")]
 [assembly: System.Reflection.AssemblyProductAttribute("DiscogsKebakenHelper")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DiscogsKebakenHelper")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

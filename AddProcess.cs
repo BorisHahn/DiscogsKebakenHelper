@@ -76,15 +76,16 @@ public class AddModeState
         {
             var test = response.Content;
             var jsonObject = JsonNode.Parse(test);
-            Console.WriteLine(jsonObject);
-           
+            
             await TelegramClient.SendTextMessageAsync(
                 chatId: update.Message.Chat.Id,
                 text: "Релиз успешно добавлен в коллекцию!",
                 cancellationToken: ct);
             await TelegramClient.SendTextMessageAsync(
                     chatId: update.Message.Chat.Id,
-                    text: $"{jsonObject["basic_information"]["thumb"]}\n" +
+                    text: $"Id: {jsonObject["id"]}\n" +
+                          $"InstanceId: {jsonObject["instance_id"]}\n" +
+                          $"{jsonObject["basic_information"]["thumb"]}\n" +
                           $"Aртист: {jsonObject["basic_information"]["artists"][0]["name"]}\n" +
                           $"Наименование релиза: {jsonObject["basic_information"]["title"]}\n" +
                           $"Год: {jsonObject["basic_information"]["year"]}\n",
