@@ -71,14 +71,13 @@ public class AddModeState
 
         var request = new RestRequest(Method.POST);
         IRestResponse response = clientTest.Execute(request);
-
+       
         if (response.IsSuccessful)
         {
             var test = response.Content;
             var jsonObject = JsonNode.Parse(test);
-            Console.WriteLine(jsonObject.ToString());
-            Console.WriteLine(jsonObject["basic_information"]["thumb"]);
-
+            Console.WriteLine(jsonObject);
+           
             await TelegramClient.SendTextMessageAsync(
                 chatId: update.Message.Chat.Id,
                 text: "Релиз успешно добавлен в коллекцию!",

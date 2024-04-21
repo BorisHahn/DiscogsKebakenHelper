@@ -43,8 +43,6 @@ public class SearchProcess
         {
             state.Mode = SearchState.initial;
         }
-        Console.WriteLine(state.Mode);
-        Console.WriteLine(Artist + " " + ReleaseTitle + " " + ChatDict.Count);
         switch (state.Mode)
         {
             case SearchState.initial:
@@ -89,7 +87,6 @@ public class SearchProcess
             format = "Vinyl"
         };
         var res = client.SearchAsync(discogsSearch).Result;
-        Console.WriteLine(res.GetResults().Length);
         if (res.GetResults().Length == 0)
         {
             await TelegramClient.SendTextMessageAsync(

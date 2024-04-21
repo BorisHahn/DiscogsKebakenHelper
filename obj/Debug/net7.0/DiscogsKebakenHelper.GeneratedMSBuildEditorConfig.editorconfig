@@ -8,4 +8,6 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = DiscogsKebakenHelper
-build_property.ProjectDir = E:\dev\C#\code-197863-88559b\DiscogsKebakenHelper\
+build_property.ProjectDir = C:\Code\dev\DiscogsKebakenHelper\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 

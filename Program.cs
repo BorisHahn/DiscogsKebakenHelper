@@ -12,18 +12,11 @@ using User = DiscogsKebakenHelper.Model.User;
 var botClient = new TelegramBotClient(AppConfiguration.TelegramBotToken);
 var newSearchProcessDict = new Dictionary<long, SearchProcess>();
 var newAddProcessDict = new Dictionary<long, AddProcess>();
+var newDeleteProcessDict = new Dictionary<long, DeleteProcess>();
 var oAuthConsumerInformation =
     new OAuthConsumerInformation(AppConfiguration.ConsumerKey, AppConfiguration.ConsumerSecret);
 var arrayOfUsers = new List<User>();
 var dateTime = DateTime.UtcNow;
-var chatMode = new Dictionary<int, string>()
-{
-    { 0, "Initial"},
-    { 1, "AskMenuCommand"},
-    { 2, "ReadyToAuth"},
-    { 3, "SearchProcess" },
-    { 4, "AddProcess" }
-};
 
 var ro = new ReceiverOptions
 {
@@ -55,7 +48,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
             UserData.AddUser(db, new User
             {
                 ChatId = (int)update.Message!.Chat.Id,
-                ChatMode = chatMode[0],
+                ChatMode = Enums.chatMode[0],
                 UserName = "",
                 OauthToken = "",
                 OauthTokenSecret = "",
@@ -82,6 +75,10 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
     {
         newAddProcessDict.Add(update.Message!.Chat.Id, new AddProcess());
     }
+    if (!newDeleteProcessDict.TryGetValue(update.Message!.Chat.Id, out var newDeleteProcess))
+    {
+        newDeleteProcessDict.Add(update.Message!.Chat.Id, new DeleteProcess());
+    }
     var state = currentUser.ChatMode;
     
     if (update.Message.Text == "/exit" || update.Message.Text == "/menu")
@@ -92,7 +89,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
             {
                 Uid = currentUser.Uid,
                 ChatId = currentUser.ChatId,
-                ChatMode = chatMode[1],
+                ChatMode = Enums.chatMode[1],
                 OauthToken = currentUser.OauthToken,
                 OauthTokenSecret = currentUser.OauthTokenSecret,
                 UserName = currentUser.UserName,
@@ -118,7 +115,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                     {
                         Uid = currentUser.Uid,
                         ChatId = currentUser.ChatId,
-                        ChatMode = chatMode[1],
+                        ChatMode = Enums.chatMode[1],
                         OauthToken = currentUser.OauthToken,
                         OauthTokenSecret = currentUser.OauthTokenSecret,
                         UserName = currentUser.UserName,
@@ -133,7 +130,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                     {
                         Uid = currentUser.Uid,
                         ChatId = currentUser.ChatId,
-                        ChatMode = chatMode[1],
+                        ChatMode = Enums.chatMode[1],
                         OauthToken = currentUser.OauthToken,
                         OauthTokenSecret = currentUser.OauthTokenSecret,
                         UserName = currentUser.UserName,
@@ -148,6 +145,10 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                 await newAddProcess.StartAddProcess(client, update, currentUser, ct,
                             oAuthConsumerInformation);
                 break;
+            case "DeleteProcess":
+                await newDeleteProcess.StartDeleteProcess(client, update, currentUser, ct,
+                            oAuthConsumerInformation);
+                break;
             case "AskMenuCommand":
                 switch (update.Message.Text)
                 {
@@ -159,7 +160,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                             {
                                 Uid = currentUser.Uid,
                                 ChatId = currentUser.ChatId,
-                                ChatMode = chatMode[2],
+                                ChatMode = Enums.chatMode[2],
                                 OauthToken = currentUser.OauthToken,
                                 OauthTokenSecret = currentUser.OauthTokenSecret,
                                 UserName = currentUser.UserName,
@@ -176,7 +177,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                             {
                                 Uid = currentUser.Uid,
                                 ChatId = currentUser.ChatId,
-                                ChatMode = chatMode[3],
+                                ChatMode = Enums.chatMode[3],
                                 OauthToken = currentUser.OauthToken,
                                 OauthTokenSecret = currentUser.OauthTokenSecret,
                                 UserName = currentUser.UserName,
@@ -193,7 +194,24 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                             {
                                 Uid = currentUser.Uid,
                                 ChatId = currentUser.ChatId,
-                                ChatMode = chatMode[4],
+                                ChatMode = Enums.chatMode[4],
+                                OauthToken = currentUser.OauthToken,
+                                OauthTokenSecret = currentUser.OauthTokenSecret,
+                                UserName = currentUser.UserName,
+                                UserRequestToken = currentUser.UserRequestToken
+                            });
+                        }
+                        break;
+                    case "/delete":
+                        await newDeleteProcess.StartDeleteProcess(client, update, currentUser, ct,
+                            oAuthConsumerInformation);
+                        using (PostgresContext db = new())
+                        {
+                            UserData.UpdateUser(db, new User
+                            {
+                                Uid = currentUser.Uid,
+                                ChatId = currentUser.ChatId,
+                                ChatMode = Enums.chatMode[5],
                                 OauthToken = currentUser.OauthToken,
                                 OauthTokenSecret = currentUser.OauthTokenSecret,
                                 UserName = currentUser.UserName,
@@ -217,7 +235,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                 switch (update.Message.Text)
                 {
                     case "/search":
-                        currentUser.ChatMode = chatMode[3];
+                        currentUser.ChatMode = Enums.chatMode[3];
                         await newSearchProcess.StartSearchProcess(client, update, currentUser, ct,
                             oAuthConsumerInformation);
                         break;
@@ -245,12 +263,12 @@ async Task SendMenu(ITelegramBotClient client, Update update, User currentUser, 
     }
 
     string authCommand = current.UserName == ""
-        ? "/auth - аутентификация пользователя"
-        : "/search - поиск по базе данных\n/add - добавить релиз в коллекцию";
+        ? "/auth - Аутентификация пользователя в Discogs"
+        : "/search - Поиск по базе данных Discogs\n/add - Добавить релиз в коллекцию\n/delete - Удалить релиз из коллекции";
     await client.SendTextMessageAsync(chatId: update.Message!.Chat.Id,
         text: "Выберите меню:\n\n" +
               $"{authCommand}\n" +
-              "/exit - вернуться в главное меню\n",
+              "/exit - Вернуться в главное меню\n",
         cancellationToken: ct);
 }
 
@@ -328,6 +346,7 @@ public class Enums
         { 1, "AskMenuCommand"},
         { 2, "ReadyToAuth"},
         { 3, "SearchProcess" },
-        { 4, "AddProcess" }
+        { 4, "AddProcess" },
+        { 5, "DeleteProcess" },
     };
 };
