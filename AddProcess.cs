@@ -7,6 +7,7 @@ using User = DiscogsKebakenHelper.Model.User;
 using System.Text.Json.Nodes;
 using DiscogsKebakenHelper.Data;
 using DiscogsKebakenHelper.Model;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace DiscogsKebakenHelper;
 
@@ -14,6 +15,8 @@ public enum AddState
 {
     initial = 0,
     setReleaseId = 1,
+    setStoragePlace = 2,
+    addRelease = 3,
 };
 
 public class AddModeState
@@ -21,9 +24,10 @@ public class AddModeState
     public AddState Mode { get; set; }
 }
 
-    internal class AddProcess
+    public class AddProcess
     {
         public string ReleaseId { get; set; }
+        public string? StoragePlace { get; set; }
         public Dictionary<long, AddModeState> ChatDict { get; set; } = new();
 
         public async Task StartAddProcess(ITelegramBotClient client, Update update, User currentUser,
@@ -51,19 +55,52 @@ public class AddModeState
                     state.Mode = AddState.setReleaseId;
                     break;
                 case AddState.setReleaseId:
+                ReplyKeyboardMarkup replyKeyboardMarkup = new(new[]
+                {
+                    new KeyboardButton[] { "Да" },
+                    new KeyboardButton[] { "Нет" },
+                });
                     ReleaseId = update.Message.Text;
-                    OAuthCompleteInformation oauthInform = new OAuthCompleteInformation(oAuthConsumerInformation,
-                        currentUser.OauthToken,
-                        currentUser.OauthTokenSecret);
-                    var _DiscogsClient = new DiscogsClient.DiscogsClient(oauthInform);
-                    Add(_DiscogsClient, client, update, ct, ReleaseId, currentUser, state);
+                    await client.SendTextMessageAsync(
+                        chatId: update.Message.Chat.Id,
+                        text: "Добавить физическое место хранения винила?\nПример: Там, где свален весь винил",
+                        replyMarkup: replyKeyboardMarkup,
+                        cancellationToken: ct);
+                    state.Mode = AddState.setStoragePlace;
+                break;
+                case AddState.setStoragePlace:
+                    switch(update.Message.Text)
+                    {
+                        case "Да":
+                            await client.SendTextMessageAsync(
+                                chatId: update.Message.Chat.Id,
+                                text: "Где будете хранить?",
+                                replyMarkup: new ReplyKeyboardRemove(),
+                                cancellationToken: ct);
+                            state.Mode = AddState.addRelease;
+                            break;
+                        case "Нет":
+                            StoragePlace = null;
+                            await client.SendTextMessageAsync(
+                                chatId: update.Message.Chat.Id,
+                                text: "",
+                                replyMarkup: new ReplyKeyboardRemove(),
+                                cancellationToken: ct);
+                            Add(client, update, ct, ReleaseId, StoragePlace, currentUser, state);
+                            state.Mode = AddState.initial;
+                            break;
+                    }
+                break;
+                case AddState.addRelease:
+                StoragePlace = update.Message.Text;
+                Add(client, update, ct, ReleaseId, StoragePlace, currentUser, state);
                     state.Mode = AddState.initial;
                 break;
             }
         }
 
-    async void Add(DiscogsClient.DiscogsClient client, ITelegramBotClient TelegramClient, Update update,
-        CancellationToken ct, string releaseId, User user, AddModeState state)
+    async void Add(ITelegramBotClient TelegramClient, Update update,
+        CancellationToken ct, string releaseId, string? storagePlace, User user, AddModeState state)
     {
         var clientTest = new RestClient($"https://api.discogs.com/users/{user.UserName}/collection/folders/1/releases/{releaseId}")
         {
@@ -72,23 +109,37 @@ public class AddModeState
 
         var request = new RestRequest(Method.POST);
         IRestResponse response = clientTest.Execute(request);
-       
+
         if (response.IsSuccessful)
         {
             var test = response.Content;
             var jsonObject = JsonNode.Parse(test);
-            
+            using (PostgresContext db = new())
+            {
+                ReleaseData.AddRelease(db, new Release
+                {
+                    ChatId = user.ChatId,
+                    Artist = $"{jsonObject["basic_information"]["artists"][0]["name"]}",
+                    ReleaseName = $"{jsonObject["basic_information"]["title"]}",
+                    ReleaseYear = $"{jsonObject["basic_information"]["year"]}",
+                    ReleaseId = $"{jsonObject["id"]}",
+                    InstanceId = $"{jsonObject["instance_id"]}",
+                    StoragePlace = storagePlace,
+                    Thumb = $"{jsonObject["basic_information"]["thumb"]}"
+                });
+            }
             await TelegramClient.SendTextMessageAsync(
                 chatId: update.Message.Chat.Id,
                 text: "Релиз успешно добавлен в коллекцию!",
                 cancellationToken: ct);
             await TelegramClient.SendTextMessageAsync(
                     chatId: update.Message.Chat.Id,
-                    text: 
+                    text:
                           $"{jsonObject["basic_information"]["thumb"]}\n" +
                           $"Aртист: {jsonObject["basic_information"]["artists"][0]["name"]}\n" +
                           $"Наименование релиза: {jsonObject["basic_information"]["title"]}\n" +
                           $"Год: {jsonObject["basic_information"]["year"]}\n" +
+                          $"Место хранение: {(storagePlace != null ? storagePlace : "Место хранения не указано")}\n" +
                           $"Id: {jsonObject["id"]}\n" +
                           $"InstanceId: {jsonObject["instance_id"]}\n",
                     cancellationToken: ct);
@@ -102,10 +153,11 @@ public class AddModeState
                     OauthToken = user.OauthToken,
                     OauthTokenSecret = user.OauthTokenSecret,
                     UserName = user.UserName,
-                    UserRequestToken = user.UserRequestToken
+                    UserRequestToken = user.UserRequestToken,
                 });
             }
-        } else
+        }
+        else
         {
             await TelegramClient.SendTextMessageAsync(
                 chatId: update.Message.Chat.Id,

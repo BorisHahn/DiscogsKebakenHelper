@@ -14,6 +14,7 @@ public partial class PostgresContext : DbContext
     }
 
     public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<Release> Releases { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql($"Host=localhost;Port=5432;Database=postgres;Username=postgres;Password={AppConfiguration.SubdPassword}");
@@ -25,8 +26,11 @@ public partial class PostgresContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Uid).HasName("Users_pkey");
+        });
 
-            //entity.Property(e => e.Uid).ValueGeneratedNever();
+        modelBuilder.Entity<Release>(entity =>
+        {
+            entity.HasKey(e => e.Uid).HasName("Users_pkey");
         });
 
         OnModelCreatingPartial(modelBuilder);

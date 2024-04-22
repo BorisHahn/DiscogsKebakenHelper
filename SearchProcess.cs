@@ -105,10 +105,6 @@ public class SearchProcess
         {
             foreach (var searchResult in res.GetResults())
             {
-                var inlineKeyboard = new InlineKeyboardMarkup(new[]
-                    {
-                    InlineKeyboardButton.WithCallbackData("Добавить", $"addInCollection,{searchResult.id}")
-                });
                 var genreString = String.Join(", ", searchResult.format);
                 var formatString = String.Join(", ", searchResult.format);
 
@@ -122,13 +118,12 @@ public class SearchProcess
                           $"Жанр: {genreString}\n" +
                           $"Пользователи добавили: {searchResult.community.have}\n" +
                           $"Пользователи хотят: {searchResult.community.want}\n",
-                    replyMarkup: inlineKeyboard,
                     cancellationToken: ct);
-                /*await TelegramClient.SendTextMessageAsync(
+                await TelegramClient.SendTextMessageAsync(
                     chatId: update.Message.Chat.Id,
                     text: $"Скопируй id релиза для добавления \n\n`{searchResult.id}`",
                     parseMode: ParseMode.Markdown,
-                    cancellationToken: ct);*/
+                    cancellationToken: ct);
             }
 
             using (PostgresContext db = new())

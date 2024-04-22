@@ -31,22 +31,13 @@ Console.ReadLine();
 
 async Task Handler(ITelegramBotClient client, Update update, CancellationToken ct)
 {
-    if (update.CallbackQuery != null)
-    {
-        Console.WriteLine(update.CallbackQuery.Data);
-        
-        await client.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Добавлено");
-        
-        return;
-
-    }
     User? checkUser;
     User? currentUser;
     if (update?.Message?.Date < dateTime)
     {
         return;
-    }
-    Console.WriteLine(update.Message!.Chat.Id);
+    } 
+   
     using (PostgresContext db = new ())
     {
         checkUser = UserData.GetUser(db, (int)update.Message!.Chat.Id);
@@ -87,6 +78,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
     {
         newDeleteProcessDict.Add(update.Message!.Chat.Id, new DeleteProcess());
     }
+
     var state = currentUser.ChatMode;
     
     if (update.Message.Text == "/exit" || update.Message.Text == "/menu")
