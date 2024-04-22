@@ -6,6 +6,7 @@ using RestSharpHelper.OAuth1;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using User = DiscogsKebakenHelper.Model.User;
 
@@ -20,7 +21,7 @@ var dateTime = DateTime.UtcNow;
 
 var ro = new ReceiverOptions
 {
-    AllowedUpdates = new Telegram.Bot.Types.Enums.UpdateType[] { },
+    AllowedUpdates = Array.Empty<UpdateType>()
 };
 
 botClient.StartReceiving(updateHandler: Handler, pollingErrorHandler: ErrorHandler, receiverOptions: ro);
@@ -30,12 +31,19 @@ Console.ReadLine();
 
 async Task Handler(ITelegramBotClient client, Update update, CancellationToken ct)
 {
+    if (update.CallbackQuery != null)
+    {
+        Console.WriteLine(update.CallbackQuery.Data);
+        
+        await client.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Добавлено");
+        
+        return;
+
+    }
     User? checkUser;
     User? currentUser;
-    Console.WriteLine(update.Message.Text);
     if (update?.Message?.Date < dateTime)
     {
-   
         return;
     }
     Console.WriteLine(update.Message!.Chat.Id);

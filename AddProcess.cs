@@ -29,7 +29,8 @@ public class AddModeState
         public async Task StartAddProcess(ITelegramBotClient client, Update update, User currentUser,
         CancellationToken ct, OAuthConsumerInformation oAuthConsumerInformation)
         {
-            if (!ChatDict.TryGetValue(update.Message!.Chat.Id, out var state))
+
+        if (!ChatDict.TryGetValue(update.Message!.Chat.Id, out var state))
             {
                 ChatDict.Add(update.Message!.Chat.Id, new AddModeState());
             }
@@ -76,18 +77,20 @@ public class AddModeState
         {
             var test = response.Content;
             var jsonObject = JsonNode.Parse(test);
-            Console.WriteLine(jsonObject);
-           
+            
             await TelegramClient.SendTextMessageAsync(
                 chatId: update.Message.Chat.Id,
                 text: "Релиз успешно добавлен в коллекцию!",
                 cancellationToken: ct);
             await TelegramClient.SendTextMessageAsync(
                     chatId: update.Message.Chat.Id,
-                    text: $"{jsonObject["basic_information"]["thumb"]}\n" +
+                    text: 
+                          $"{jsonObject["basic_information"]["thumb"]}\n" +
                           $"Aртист: {jsonObject["basic_information"]["artists"][0]["name"]}\n" +
                           $"Наименование релиза: {jsonObject["basic_information"]["title"]}\n" +
-                          $"Год: {jsonObject["basic_information"]["year"]}\n",
+                          $"Год: {jsonObject["basic_information"]["year"]}\n" +
+                          $"Id: {jsonObject["id"]}\n" +
+                          $"InstanceId: {jsonObject["instance_id"]}\n",
                     cancellationToken: ct);
             using (PostgresContext db = new())
             {
