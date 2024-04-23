@@ -5,88 +5,81 @@ using RestSharpHelper.OAuth1;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace DiscogsKebakenHelper
 { 
 
-public enum SearchState
-{
-    initial = 0,
-    setArtist = 1,
-    setReleaseTitle = 2,
-    getSearchResult = 3,
-};
+    public enum SearchInDbState
+    {
+        initial = 0,
+        setArtist = 1,
+        setReleaseTitle = 2,
+        getSearchResult = 3,
+    };
 
-public class SearchModeState
-{
-    public SearchState Mode { get; set; }
-}
+    public class SearchInDbModeState
+    {
+        public SearchInDbState Mode { get; set; }
+    }
 
-    public class SearchProcess
+    public class SearchProcessInDB
     {
         public string Artist { get; set; }
         public string ReleaseTitle { get; set; }
-        public Dictionary<long, SearchModeState> ChatDict { get; set; } = new();
+        public Dictionary<long, SearchInDbModeState> ChatDict { get; set; } = new();
 
-        public async Task StartSearchProcess(ITelegramBotClient client, Update update, User currentUser,
+        public async Task StartSearchInDbProcess(ITelegramBotClient client, Update update, User currentUser,
             CancellationToken ct, OAuthConsumerInformation oAuthConsumerInformation)
         {
             if (!ChatDict.TryGetValue(update.Message!.Chat.Id, out var state))
             {
-                ChatDict.Add(update.Message!.Chat.Id, new SearchModeState());
+                ChatDict.Add(update.Message!.Chat.Id, new SearchInDbModeState());
             }
 
             state = ChatDict[update.Message!.Chat.Id];
 
-            if (update.Message.Text == "/search")
+            if (update.Message.Text == "/searchDB")
             {
-                state.Mode = SearchState.initial;
+                state.Mode = SearchInDbState.initial;
             }
             switch (state.Mode)
             {
-                case SearchState.initial:
+                case SearchInDbState.initial:
                     await client.SendTextMessageAsync(
                         chatId: update.Message.Chat.Id,
                         text: "Введите наименование исполнителя:",
                         cancellationToken: ct);
-                    state.Mode = SearchState.setArtist;
+                    state.Mode = SearchInDbState.setArtist;
                     break;
-                case SearchState.setArtist:
+                case SearchInDbState.setArtist:
                     Artist = update.Message.Text;
                     await client.SendTextMessageAsync(
                         chatId: update.Message.Chat.Id,
                         text: "Введите наименование релиза:",
                         cancellationToken: ct);
-                    state.Mode = SearchState.setReleaseTitle;
+                    state.Mode = SearchInDbState.setReleaseTitle;
                     break;
-                case SearchState.setReleaseTitle:
+                case SearchInDbState.setReleaseTitle:
                     ReleaseTitle = update.Message.Text;
                     await client.SendTextMessageAsync(
                         chatId: update.Message.Chat.Id,
-                        text: $"Вот, что удалось найти по заданному запросу:\n{$"{Artist} " + '–' + $" {ReleaseTitle}"}",
+                        text: $"Вот, что удалось найти в вашей базе по заданному запросу:\n{$"{Artist} " + '–' + $" {ReleaseTitle}"}",
                         cancellationToken: ct);
-                    OAuthCompleteInformation oauthInform = new OAuthCompleteInformation(oAuthConsumerInformation,
-                        currentUser.OauthToken,
-                        currentUser.OauthTokenSecret);
-                    var _DiscogsClient = new DiscogsClient.DiscogsClient(oauthInform);
-                    Search(_DiscogsClient, client, update, ct, Artist, ReleaseTitle, currentUser, state);
-                    state.Mode = SearchState.initial;
+                    SearchInDb(client, update, ct, Artist, ReleaseTitle, currentUser, state);
+                    state.Mode = SearchInDbState.initial;
                     break;
             }
         }
-
-        async void Search(DiscogsClient.DiscogsClient client, ITelegramBotClient TelegramClient, Update update,
-            CancellationToken ct, string artist, string releaseTitle, User user, SearchModeState state)
+        async void SearchInDb(ITelegramBotClient TelegramClient, Update update,
+        CancellationToken ct, string artist, string releaseTitle, User user, SearchInDbModeState state)
         {
-
-            var discogsSearch = new DiscogsSearch()
+            List<Release> res;
+            using (PostgresContext db = new())
             {
-                artist = artist,
-                release_title = releaseTitle,
-                format = "Vinyl"
-            };
-            var res = client.SearchAsync(discogsSearch).Result;
-            if (res.GetResults().Length == 0)
+                res = ReleaseData.GetRelease(db, artist, releaseTitle);
+            }
+            if (res.Count == 0)
             {
                 await TelegramClient.SendTextMessageAsync(
                     chatId: update.Message.Chat.Id,
@@ -96,7 +89,7 @@ public class SearchModeState
                     chatId: update.Message.Chat.Id,
                     text: "Введите наименование исполнителя:",
                     cancellationToken: ct);
-                state.Mode = SearchState.setArtist;
+                state.Mode = SearchInDbState.setArtist;
 
                 using (PostgresContext db = new())
                 {
@@ -104,37 +97,35 @@ public class SearchModeState
                     {
                         Uid = user.Uid,
                         ChatId = user.ChatId,
-                        ChatMode = Enums.chatMode[3],
+                        ChatMode = Enums.chatMode[6],
                         OauthToken = user.OauthToken,
                         OauthTokenSecret = user.OauthTokenSecret,
                         UserName = user.UserName,
                         UserRequestToken = user.UserRequestToken
                     });
                 }
-
             }
             else
             {
-                foreach (var searchResult in res.GetResults())
+                foreach (var r in res)
                 {
-                    var genreString = String.Join(", ", searchResult.format);
-                    var formatString = String.Join(", ", searchResult.format);
+                    InlineKeyboardMarkup deleteKeyboard = new(new[]
+                    {
+                        new []
+                        {
+                            InlineKeyboardButton.WithCallbackData(text: "Удалить", callbackData: $"delete,{r.ReleaseId},{r.InstanceId}"),
+                        },
 
+                    });
                     await TelegramClient.SendTextMessageAsync(
                         chatId: update.Message.Chat.Id,
-                        text: $"{searchResult.thumb}\n" +
-                              $"Наименование: {searchResult.title}\n" +
-                              $"Страна: {searchResult.country}\n" +
-                              $"Год: {searchResult.year}\n" +
-                              $"Формат: {formatString}\n" +
-                              $"Жанр: {genreString}\n" +
-                              $"Пользователи добавили: {searchResult.community.have}\n" +
-                              $"Пользователи хотят: {searchResult.community.want}\n",
-                        cancellationToken: ct);
-                    await TelegramClient.SendTextMessageAsync(
-                        chatId: update.Message.Chat.Id,
-                        text: $"Скопируй id релиза для добавления \n\n`{searchResult.id}`",
-                        parseMode: ParseMode.Markdown,
+                        text: $"{r.Thumb}\n" +
+                              $"Наименование: {r.Artist} - {r.ReleaseName}\n" +
+                              $"Год: {r.ReleaseYear}\n" +
+                              $"Место хранение: {r.StoragePlace}\n" +
+                              $"Id: {r.ReleaseId}\n" +
+                              $"InstanceId: {r.InstanceId}\n",
+                        replyMarkup: deleteKeyboard,
                         cancellationToken: ct);
                 }
 
@@ -154,4 +145,5 @@ public class SearchModeState
             }
         }
     }
+
 }

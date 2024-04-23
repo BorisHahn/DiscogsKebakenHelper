@@ -8,15 +8,15 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-using User = DiscogsKebakenHelper.Model.User;
+using User = DiscogsKebakenHelper.User;
 
 var botClient = new TelegramBotClient(AppConfiguration.TelegramBotToken);
 var newSearchProcessDict = new Dictionary<long, SearchProcess>();
+var newSearchProcessInDbDict = new Dictionary<long, SearchProcessInDB>();
 var newAddProcessDict = new Dictionary<long, AddProcess>();
 var newDeleteProcessDict = new Dictionary<long, DeleteProcess>();
 var oAuthConsumerInformation =
     new OAuthConsumerInformation(AppConfiguration.ConsumerKey, AppConfiguration.ConsumerSecret);
-var arrayOfUsers = new List<User>();
 var dateTime = DateTime.UtcNow;
 
 var ro = new ReceiverOptions
@@ -31,6 +31,12 @@ Console.ReadLine();
 
 async Task Handler(ITelegramBotClient client, Update update, CancellationToken ct)
 {
+    if (update.CallbackQuery != null)
+    {
+        Console.WriteLine(update.CallbackQuery.Data);
+        
+        return;
+    }
     User? checkUser;
     User? currentUser;
     if (update?.Message?.Date < dateTime)
@@ -69,6 +75,10 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
     if (!newSearchProcessDict.TryGetValue(update.Message!.Chat.Id, out var newSearchProcess))
     {
         newSearchProcessDict.Add(update.Message!.Chat.Id, new SearchProcess());
+    }
+    if (!newSearchProcessInDbDict.TryGetValue(update.Message!.Chat.Id, out var newSearchProcessInDb))
+    {
+        newSearchProcessInDbDict.Add(update.Message!.Chat.Id, new SearchProcessInDB());
     }
     if (!newAddProcessDict.TryGetValue(update.Message!.Chat.Id, out var newAddProcess))
     {
@@ -141,6 +151,9 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
             case "SearchProcess":
                 await newSearchProcess.StartSearchProcess(client, update, currentUser, ct, oAuthConsumerInformation);
                 break;
+            case "SearchInDbProcess":
+                await newSearchProcessInDb.StartSearchInDbProcess(client, update, currentUser, ct, oAuthConsumerInformation);
+                break;
             case "AddProcess":
                 await newAddProcess.StartAddProcess(client, update, currentUser, ct,
                             oAuthConsumerInformation);
@@ -178,6 +191,23 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                                 Uid = currentUser.Uid,
                                 ChatId = currentUser.ChatId,
                                 ChatMode = Enums.chatMode[3],
+                                OauthToken = currentUser.OauthToken,
+                                OauthTokenSecret = currentUser.OauthTokenSecret,
+                                UserName = currentUser.UserName,
+                                UserRequestToken = currentUser.UserRequestToken
+                            });
+                        }
+                        break;
+                    case "/searchDB":
+                        await newSearchProcessInDb.StartSearchInDbProcess(client, update, currentUser, ct,
+                            oAuthConsumerInformation);
+                        using (PostgresContext db = new())
+                        {
+                            UserData.UpdateUser(db, new User
+                            {
+                                Uid = currentUser.Uid,
+                                ChatId = currentUser.ChatId,
+                                ChatMode = Enums.chatMode[6],
                                 OauthToken = currentUser.OauthToken,
                                 OauthTokenSecret = currentUser.OauthTokenSecret,
                                 UserName = currentUser.UserName,
@@ -234,11 +264,6 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
             default:
                 switch (update.Message.Text)
                 {
-                    case "/search":
-                        currentUser.ChatMode = Enums.chatMode[3];
-                        await newSearchProcess.StartSearchProcess(client, update, currentUser, ct,
-                            oAuthConsumerInformation);
-                        break;
                     default:
                         await SendMenu(client, update, currentUser, ct);
                         break;
@@ -264,7 +289,7 @@ async Task SendMenu(ITelegramBotClient client, Update update, User currentUser, 
 
     string authCommand = current.UserName == ""
         ? "/auth - Аутентификация пользователя в Discogs"
-        : "/search - Поиск по базе данных Discogs\n/add - Добавить релиз в коллекцию\n/delete - Удалить релиз из коллекции";
+        : "/search - Поиск по базе данных Discogs\n/searchDB - Поиск по персональной базе данных\n/add - Добавить релиз в коллекцию\n/delete - Удалить релиз из коллекции";
     await client.SendTextMessageAsync(chatId: update.Message!.Chat.Id,
         text: "Выберите меню:\n\n" +
               $"{authCommand}\n" +
@@ -348,5 +373,6 @@ public class Enums
         { 3, "SearchProcess" },
         { 4, "AddProcess" },
         { 5, "DeleteProcess" },
+        { 6, "SearchInDbProcess" },
     };
 };

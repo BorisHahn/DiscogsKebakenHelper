@@ -3,7 +3,6 @@ using Telegram.Bot.Types;
 using Telegram.Bot;
 using RestSharp;
 using RestSharp.Authenticators;
-using User = DiscogsKebakenHelper.Model.User;
 using DiscogsKebakenHelper.Data;
 using DiscogsKebakenHelper.Model;
 

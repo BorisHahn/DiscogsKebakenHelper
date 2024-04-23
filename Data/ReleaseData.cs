@@ -15,5 +15,10 @@ namespace DiscogsKebakenHelper.Data
             context.Add(release);
             context.SaveChanges();
         }
+
+        public static List<Release> GetRelease(PostgresContext context, string artist, string releaseName)
+        {
+           return context.Releases.Where((r) => r.Artist.ToLower().Contains(artist.ToLower()) || r.ReleaseName.ToLower().Contains(releaseName.ToLower())).ToList();
+        }
     }
 }
