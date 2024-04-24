@@ -115,6 +115,10 @@ namespace DiscogsKebakenHelper
                         {
                             InlineKeyboardButton.WithCallbackData(text: "Удалить", callbackData: $"delete,{r.ReleaseId},{r.InstanceId}"),
                         },
+                        new []
+                        {
+                             InlineKeyboardButton.WithCallbackData(text: "Редактировать место хранения", callbackData: $"move,{r.InstanceId}"),
+                        },
 
                     });
                     await TelegramClient.SendTextMessageAsync(

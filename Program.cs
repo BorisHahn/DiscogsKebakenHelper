@@ -2,6 +2,7 @@
 using DiscogsKebakenHelper;
 using DiscogsKebakenHelper.Data;
 using DiscogsKebakenHelper.Model;
+using Newtonsoft.Json;
 using RestSharpHelper.OAuth1;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
@@ -9,12 +10,13 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using User = DiscogsKebakenHelper.User;
-
+LoadConfiguration();
 var botClient = new TelegramBotClient(AppConfiguration.TelegramBotToken);
 var newSearchProcessDict = new Dictionary<long, SearchProcess>();
 var newSearchProcessInDbDict = new Dictionary<long, SearchProcessInDB>();
 var newAddProcessDict = new Dictionary<long, AddProcess>();
 var newDeleteProcessDict = new Dictionary<long, DeleteProcess>();
+var newMoveProcessDict = new Dictionary<long, MoveStoragePlace>();
 var oAuthConsumerInformation =
     new OAuthConsumerInformation(AppConfiguration.ConsumerKey, AppConfiguration.ConsumerSecret);
 var dateTime = DateTime.UtcNow;
@@ -29,30 +31,37 @@ botClient.StartReceiving(updateHandler: Handler, pollingErrorHandler: ErrorHandl
 Console.WriteLine("Стартовали");
 Console.ReadLine();
 
+void LoadConfiguration()
+{
+    using (StreamReader r = new StreamReader("configuration.json"))
+    {
+        string json = r.ReadToEnd();
+        AppConfigurationParse configuration = JsonConvert.DeserializeObject<AppConfigurationParse>(json);
+        AppConfiguration.ConsumerSecret = configuration.ConsumerSecret;
+        AppConfiguration.TelegramBotToken = configuration.TelegramBotToken;
+        AppConfiguration.ConsumerKey = configuration.ConsumerKey;
+        AppConfiguration.SubdPassword = configuration.SubdPassword;
+    }
+}
 async Task Handler(ITelegramBotClient client, Update update, CancellationToken ct)
 {
-    if (update.CallbackQuery != null)
-    {
-        Console.WriteLine(update.CallbackQuery.Data);
-        
-        return;
-    }
     User? checkUser;
     User? currentUser;
-    if (update?.Message?.Date < dateTime)
+    var message = update.CallbackQuery != null ? update.CallbackQuery.Message : update.Message;
+    if (message?.Date < dateTime)
     {
         return;
-    } 
+    }
    
     using (PostgresContext db = new ())
     {
-        checkUser = UserData.GetUser(db, (int)update.Message!.Chat.Id);
+        checkUser = UserData.GetUser(db, (int)message!.Chat.Id);
         
         if (checkUser == null)
         {
             UserData.AddUser(db, new User
             {
-                ChatId = (int)update.Message!.Chat.Id,
+                ChatId = (int)message!.Chat.Id,
                 ChatMode = Enums.chatMode[0],
                 UserName = "",
                 OauthToken = "",
@@ -60,33 +69,71 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                 UserRequestToken = "",
             });
         }
-        currentUser = UserData.GetUser(db, (int)update.Message!.Chat.Id);
+        currentUser = UserData.GetUser(db, (int)message!.Chat.Id);
     }
     if (currentUser == null)
     {
         await client.SendTextMessageAsync(
-            chatId: update.Message!.Chat.Id,
+            chatId: message!.Chat.Id,
             text:
             "ОШИБКА ПОИСКА ПОЛЬЗОВАТЕЛЯ.\nДля использования всего функционала приложения пройдите пожалуйста аутентификацию. Для этого введите команду /auth",
             cancellationToken: ct
         );
         return;
     }
-    if (!newSearchProcessDict.TryGetValue(update.Message!.Chat.Id, out var newSearchProcess))
+    if (!newSearchProcessDict.TryGetValue(message!.Chat.Id, out var newSearchProcess))
     {
-        newSearchProcessDict.Add(update.Message!.Chat.Id, new SearchProcess());
+        newSearchProcessDict.Add(message!.Chat.Id, new SearchProcess());
     }
-    if (!newSearchProcessInDbDict.TryGetValue(update.Message!.Chat.Id, out var newSearchProcessInDb))
+    if (!newSearchProcessInDbDict.TryGetValue(message!.Chat.Id, out var newSearchProcessInDb))
     {
-        newSearchProcessInDbDict.Add(update.Message!.Chat.Id, new SearchProcessInDB());
+        newSearchProcessInDbDict.Add(message!.Chat.Id, new SearchProcessInDB());
     }
-    if (!newAddProcessDict.TryGetValue(update.Message!.Chat.Id, out var newAddProcess))
+    if (!newAddProcessDict.TryGetValue(message!.Chat.Id, out var newAddProcess))
     {
-        newAddProcessDict.Add(update.Message!.Chat.Id, new AddProcess());
+        newAddProcessDict.Add(message!.Chat.Id, new AddProcess());
     }
-    if (!newDeleteProcessDict.TryGetValue(update.Message!.Chat.Id, out var newDeleteProcess))
+    if (!newDeleteProcessDict.TryGetValue(message!.Chat.Id, out var newDeleteProcess))
     {
-        newDeleteProcessDict.Add(update.Message!.Chat.Id, new DeleteProcess());
+        newDeleteProcessDict.Add(message!.Chat.Id, new DeleteProcess());
+    }
+    if (!newMoveProcessDict.TryGetValue(message!.Chat.Id, out var newMoveProcess))
+    {
+        newMoveProcessDict.Add(message!.Chat.Id, new MoveStoragePlace());
+    }
+    if (update.CallbackQuery != null)
+    {
+        var chatId = update.CallbackQuery.Message.Chat.Id;
+        var splitedData = update.CallbackQuery.Data.Split(',');
+        var method = splitedData[0];
+
+        switch (method)
+        {
+            case "delete":
+                var releaseId = splitedData[1];
+                var instanceId = splitedData[2];
+                DeleteOutsideProcess.Delete(chatId, releaseId, instanceId);
+                await client.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Удалено");
+                break;
+            case "move":
+                var instanceIdMove = splitedData[1];
+                await newMoveProcess.StartMoveProcess(client, message, currentUser, ct, instanceIdMove);
+                using (PostgresContext db = new())
+                {
+                    UserData.UpdateUser(db, new User
+                    {
+                        Uid = currentUser.Uid,
+                        ChatId = currentUser.ChatId,
+                        ChatMode = Enums.chatMode[7],
+                        OauthToken = currentUser.OauthToken,
+                        OauthTokenSecret = currentUser.OauthTokenSecret,
+                        UserName = currentUser.UserName,
+                        UserRequestToken = currentUser.UserRequestToken
+                    });
+                }
+                break;
+        }
+        return;
     }
 
     var state = currentUser.ChatMode;
@@ -161,6 +208,9 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
             case "DeleteProcess":
                 await newDeleteProcess.StartDeleteProcess(client, update, currentUser, ct,
                             oAuthConsumerInformation);
+                break;
+            case "MoveStoragePlace":
+                await newMoveProcess.StartMoveProcess(client, message, currentUser, ct, newMoveProcess.InstanceId);
                 break;
             case "AskMenuCommand":
                 switch (update.Message.Text)
@@ -363,6 +413,7 @@ async Task Auth(ITelegramBotClient client, Update update, User currentUser, Canc
         return Task.FromResult(res);
     });
 }
+
 public class Enums
 {
     public static Dictionary<int, string> chatMode = new()
@@ -374,5 +425,14 @@ public class Enums
         { 4, "AddProcess" },
         { 5, "DeleteProcess" },
         { 6, "SearchInDbProcess" },
+        { 7, "MoveStoragePlace" },
     };
 };
+
+public class AppConfigurationParse
+{
+    public string ConsumerKey { get; set; }
+    public string ConsumerSecret { get; set; }
+    public string TelegramBotToken { get; set; }
+    public string SubdPassword { get; set; }
+}

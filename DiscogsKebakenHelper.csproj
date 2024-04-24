@@ -16,9 +16,12 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.11" />
     <PackageReference Include="Telegram.Bot" Version="19.0.0" />
   </ItemGroup>
-
+    
   <ItemGroup>
     <Compile Remove="MapGenerator.cs" />
+  </ItemGroup>
+  <ItemGroup>
+	<Content Include="configuration.json" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
 </Project>
