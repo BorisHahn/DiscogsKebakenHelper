@@ -112,7 +112,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
             case "delete":
                 var releaseId = splitedData[1];
                 var instanceId = splitedData[2];
-                DeleteOutsideProcess.Delete(chatId, releaseId, instanceId);
+                DeleteOutsideProcess.Delete(chatId, releaseId, instanceId, client, message, ct);
                 await client.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Удалено");
                 break;
             case "move":
@@ -131,6 +131,25 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                         UserRequestToken = currentUser.UserRequestToken
                     });
                 }
+                break;
+            case "add":
+                var releaseIdAdd = splitedData[1];
+                await newAddProcess.StartAddProcess(client, message, currentUser, ct,
+                            releaseIdAdd);
+                using (PostgresContext db = new())
+                {
+                    UserData.UpdateUser(db, new User
+                    {
+                        Uid = currentUser.Uid,
+                        ChatId = currentUser.ChatId,
+                        ChatMode = Enums.chatMode[4],
+                        OauthToken = currentUser.OauthToken,
+                        OauthTokenSecret = currentUser.OauthTokenSecret,
+                        UserName = currentUser.UserName,
+                        UserRequestToken = currentUser.UserRequestToken
+                    });
+                }
+                await client.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Добавлено");
                 break;
         }
         return;
@@ -202,8 +221,8 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                 await newSearchProcessInDb.StartSearchInDbProcess(client, update, currentUser, ct, oAuthConsumerInformation);
                 break;
             case "AddProcess":
-                await newAddProcess.StartAddProcess(client, update, currentUser, ct,
-                            oAuthConsumerInformation);
+                await newAddProcess.StartAddProcess(client, message, currentUser, ct,
+                            newAddProcess.ReleaseId);
                 break;
             case "DeleteProcess":
                 await newDeleteProcess.StartDeleteProcess(client, update, currentUser, ct,
@@ -265,40 +284,6 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                             });
                         }
                         break;
-                    case "/add":
-                        await newAddProcess.StartAddProcess(client, update, currentUser, ct,
-                            oAuthConsumerInformation);
-                        using (PostgresContext db = new())
-                        {
-                            UserData.UpdateUser(db, new User
-                            {
-                                Uid = currentUser.Uid,
-                                ChatId = currentUser.ChatId,
-                                ChatMode = Enums.chatMode[4],
-                                OauthToken = currentUser.OauthToken,
-                                OauthTokenSecret = currentUser.OauthTokenSecret,
-                                UserName = currentUser.UserName,
-                                UserRequestToken = currentUser.UserRequestToken
-                            });
-                        }
-                        break;
-                    case "/delete":
-                        await newDeleteProcess.StartDeleteProcess(client, update, currentUser, ct,
-                            oAuthConsumerInformation);
-                        using (PostgresContext db = new())
-                        {
-                            UserData.UpdateUser(db, new User
-                            {
-                                Uid = currentUser.Uid,
-                                ChatId = currentUser.ChatId,
-                                ChatMode = Enums.chatMode[5],
-                                OauthToken = currentUser.OauthToken,
-                                OauthTokenSecret = currentUser.OauthTokenSecret,
-                                UserName = currentUser.UserName,
-                                UserRequestToken = currentUser.UserRequestToken
-                            });
-                        }
-                        break;
                     case "/menu":
                         await SendMenu(client, update, currentUser, ct);
                         break;
@@ -339,7 +324,7 @@ async Task SendMenu(ITelegramBotClient client, Update update, User currentUser, 
 
     string authCommand = current.UserName == ""
         ? "/auth - Аутентификация пользователя в Discogs"
-        : "/search - Поиск по базе данных Discogs\n/searchDB - Поиск по персональной базе данных\n/add - Добавить релиз в коллекцию\n/delete - Удалить релиз из коллекции";
+        : "/search - Поиск по базе данных Discogs\n/searchDB - Поиск по персональной базе данных";
     await client.SendTextMessageAsync(chatId: update.Message!.Chat.Id,
         text: "Выберите меню:\n\n" +
               $"{authCommand}\n" +

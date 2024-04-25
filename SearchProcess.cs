@@ -4,7 +4,7 @@ using DiscogsKebakenHelper.Model;
 using RestSharpHelper.OAuth1;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace DiscogsKebakenHelper
 { 
@@ -119,7 +119,13 @@ public class SearchModeState
                 {
                     var genreString = String.Join(", ", searchResult.format);
                     var formatString = String.Join(", ", searchResult.format);
-
+                    InlineKeyboardMarkup addKeyboard = new(new[]
+                    {
+                        new []
+                        {
+                            InlineKeyboardButton.WithCallbackData(text: "Добавить", callbackData: $"add,{searchResult.id}"),
+                        },
+                    });
                     await TelegramClient.SendTextMessageAsync(
                         chatId: update.Message.Chat.Id,
                         text: $"{searchResult.thumb}\n" +
@@ -130,11 +136,7 @@ public class SearchModeState
                               $"Жанр: {genreString}\n" +
                               $"Пользователи добавили: {searchResult.community.have}\n" +
                               $"Пользователи хотят: {searchResult.community.want}\n",
-                        cancellationToken: ct);
-                    await TelegramClient.SendTextMessageAsync(
-                        chatId: update.Message.Chat.Id,
-                        text: $"Скопируй id релиза для добавления \n\n`{searchResult.id}`",
-                        parseMode: ParseMode.Markdown,
+                        replyMarkup: addKeyboard,
                         cancellationToken: ct);
                 }
 

@@ -2,12 +2,15 @@
 using RestSharp.Authenticators;
 using RestSharp;
 using DiscogsKebakenHelper.Data;
+using Telegram.Bot.Types;
+using Telegram.Bot;
 
 namespace DiscogsKebakenHelper
 {
     public static class DeleteOutsideProcess
     {
-        public async static void Delete(long chatId, string releaseId, string instanceId)
+        public async static void Delete(long chatId, string releaseId, string instanceId, ITelegramBotClient botClient, Message message, 
+        CancellationToken ct)
         {
             User? user;
             using (PostgresContext db = new())
@@ -29,6 +32,7 @@ namespace DiscogsKebakenHelper
                 {
                     ReleaseData.DeleteRelease(db, instanceId);
                 }
+                await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId);
             }
         }
     }

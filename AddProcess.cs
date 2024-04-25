@@ -1,5 +1,4 @@
-﻿using RestSharpHelper.OAuth1;
-using Telegram.Bot.Types;
+﻿using Telegram.Bot.Types;
 using Telegram.Bot;
 using RestSharp;
 using RestSharp.Authenticators;
@@ -14,9 +13,8 @@ namespace DiscogsKebakenHelper
     public enum AddState
     {
         initial = 0,
-        setReleaseId = 1,
-        setStoragePlace = 2,
-        addRelease = 3,
+        setStoragePlace = 1,
+        addRelease = 2,
     };
 
     public class AddModeState
@@ -30,50 +28,38 @@ namespace DiscogsKebakenHelper
         public string? StoragePlace { get; set; }
         public Dictionary<long, AddModeState> ChatDict { get; set; } = new();
 
-        public async Task StartAddProcess(ITelegramBotClient client, Update update, User currentUser,
-        CancellationToken ct, OAuthConsumerInformation oAuthConsumerInformation)
+        public async Task StartAddProcess(ITelegramBotClient client, Message message, User currentUser,
+        CancellationToken ct, string releaseId)
         {
 
-            if (!ChatDict.TryGetValue(update.Message!.Chat.Id, out var state))
+            if (!ChatDict.TryGetValue(message!.Chat.Id, out var state))
             {
-                ChatDict.Add(update.Message!.Chat.Id, new AddModeState());
+                ChatDict.Add(message!.Chat.Id, new AddModeState());
             }
-            state = ChatDict[update.Message!.Chat.Id];
-
-            if (update.Message.Text == "/add")
-            {
-                state.Mode = AddState.initial;
-            }
+            state = ChatDict[message!.Chat.Id];
 
             switch (state.Mode)
             {
                 case AddState.initial:
-                    await client.SendTextMessageAsync(
-                        chatId: update.Message.Chat.Id,
-                        text: "Введите Id релиза для добавления:",
-                        cancellationToken: ct);
-                    state.Mode = AddState.setReleaseId;
-                    break;
-                case AddState.setReleaseId:
+                    ReleaseId = releaseId;
                     ReplyKeyboardMarkup replyKeyboardMarkup = new(new[]
                     {
                     new KeyboardButton[] { "Да", "Нет" },
 
-                });
-                    ReleaseId = update.Message.Text;
+                     });
                     await client.SendTextMessageAsync(
-                        chatId: update.Message.Chat.Id,
-                        text: "Добавить физическое место хранения винила?\nПример: Там, где свален весь винил",
+                        chatId: message.Chat.Id,
+                        text: "Добавить физическое место хранения винила?\nПример: Стеллаж: 7, Полка: 3",
                         replyMarkup: replyKeyboardMarkup,
                         cancellationToken: ct);
                     state.Mode = AddState.setStoragePlace;
                     break;
                 case AddState.setStoragePlace:
-                    switch (update.Message.Text)
+                    switch (message.Text)
                     {
                         case "Да":
                             await client.SendTextMessageAsync(
-                                chatId: update.Message.Chat.Id,
+                                chatId: message.Chat.Id,
                                 text: "Где будете хранить?",
                                 replyMarkup: new ReplyKeyboardRemove(),
                                 cancellationToken: ct);
@@ -82,24 +68,24 @@ namespace DiscogsKebakenHelper
                         case "Нет":
                             StoragePlace = null;
                             await client.SendTextMessageAsync(
-                                chatId: update.Message.Chat.Id,
-                                text: "",
+                                chatId: message.Chat.Id,
+                                text: "Добавляем...",
                                 replyMarkup: new ReplyKeyboardRemove(),
                                 cancellationToken: ct);
-                            Add(client, update, ct, ReleaseId, StoragePlace, currentUser, state);
+                            Add(client, message, ct, ReleaseId, StoragePlace, currentUser, state);
                             state.Mode = AddState.initial;
                             break;
                     }
                     break;
                 case AddState.addRelease:
-                    StoragePlace = update.Message.Text;
-                    Add(client, update, ct, ReleaseId, StoragePlace, currentUser, state);
+                    StoragePlace = message.Text;
+                    Add(client, message, ct, ReleaseId, StoragePlace, currentUser, state);
                     state.Mode = AddState.initial;
                     break;
             }
         }
 
-        async void Add(ITelegramBotClient TelegramClient, Update update,
+        async void Add(ITelegramBotClient TelegramClient, Message message,
             CancellationToken ct, string releaseId, string? storagePlace, User user, AddModeState state)
         {
             var clientTest = new RestClient($"https://api.discogs.com/users/{user.UserName}/collection/folders/1/releases/{releaseId}")
@@ -129,11 +115,11 @@ namespace DiscogsKebakenHelper
                     });
                 }
                 await TelegramClient.SendTextMessageAsync(
-                    chatId: update.Message.Chat.Id,
+                    chatId: message.Chat.Id,
                     text: "Релиз успешно добавлен в коллекцию!",
                     cancellationToken: ct);
                 await TelegramClient.SendTextMessageAsync(
-                        chatId: update.Message.Chat.Id,
+                        chatId: message.Chat.Id,
                         text:
                               $"{jsonObject["basic_information"]["thumb"]}\n" +
                               $"Aртист: {jsonObject["basic_information"]["artists"][0]["name"]}\n" +
@@ -156,18 +142,6 @@ namespace DiscogsKebakenHelper
                         UserRequestToken = user.UserRequestToken,
                     });
                 }
-            }
-            else
-            {
-                await TelegramClient.SendTextMessageAsync(
-                    chatId: update.Message.Chat.Id,
-                    text: "Не удалось добавить релиз c указанным Id. Попробуйте ещё раз!",
-                    cancellationToken: ct);
-                await TelegramClient.SendTextMessageAsync(
-                    chatId: update.Message.Chat.Id,
-                    text: "Введите Id релиза для добавления:",
-                    cancellationToken: ct);
-                state.Mode = AddState.setReleaseId;
             }
         }
     }
