@@ -131,6 +131,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                         UserRequestToken = currentUser.UserRequestToken
                     });
                 }
+                await client.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Редактирование");
                 break;
             case "add":
                 var releaseIdAdd = splitedData[1];
@@ -149,7 +150,7 @@ async Task Handler(ITelegramBotClient client, Update update, CancellationToken c
                         UserRequestToken = currentUser.UserRequestToken
                     });
                 }
-                await client.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Добавлено");
+                await client.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Добавление");
                 break;
         }
         return;

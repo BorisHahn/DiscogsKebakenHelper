@@ -43,16 +43,17 @@ namespace DiscogsKebakenHelper
                     break;
                 case MoveState.setNewStoragePlace:
                     NewStoragePlace = message.Text;
-                    Move(NewStoragePlace, InstanceId, currentUser);
+                    Move(NewStoragePlace, InstanceId, currentUser, state);
                     await client.SendTextMessageAsync(
                         chatId: message.Chat.Id,
                         text: "Физическое место хранения релиза успешно изменено!",
                         cancellationToken: ct);
+                    state.Mode = MoveState.initial;
                     break;
             }
         }
 
-        async void Move(string newStorage, string instanceId, User user)
+        async void Move(string newStorage, string instanceId, User user, MoveModeState state)
         {
             using (PostgresContext db = new())
             {
@@ -72,6 +73,7 @@ namespace DiscogsKebakenHelper
                     UserRequestToken = user.UserRequestToken
                 });
             }
+            state.Mode = MoveState.initial;
         }
     }
 }
